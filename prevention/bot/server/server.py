@@ -1,19 +1,20 @@
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
+from dotenv import load_dotenv
 
-ADMIN_CHAT_ID = "7957686804"
-TELEGRAM_TOKEN = "7840749042:AAGA57FKu-6lqk81Zbzogwx0UL5kKdQ-sWA"
+# Завантажуємо змінні середовища
+load_dotenv()
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
 app = Flask(__name__)
-
-# Дозволяємо доступ лише з певного джерела (локальний клієнт)
 CORS(app, resources={r"/*": {"origins": "http://localhost:63342"}})
 
 @app.route("/submit_form", methods=["POST", "OPTIONS"])
 def submit_form():
-    # Відповідь на preflight (OPTIONS) запит
     if request.method == "OPTIONS":
         response = jsonify()
         response.headers["Access-Control-Allow-Origin"] = "http://localhost:63342"
@@ -21,7 +22,6 @@ def submit_form():
         response.headers["Access-Control-Allow-Headers"] = "Content-Type"
         return response
 
-    # Основний обробник POST запиту
     data = request.json
     full_name = data.get("fullName")
     phone_number = data.get("phoneNumber")

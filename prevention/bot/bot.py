@@ -1,11 +1,17 @@
 import asyncio
+import os
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from dotenv import load_dotenv
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-TELEGRAM_TOKEN = "7840749042:AAGA57FKu-6lqk81Zbzogwx0UL5kKdQ-sWA"
-ADMIN_CHAT_ID = "7957686804"
+# Завантажуємо змінні середовища з файлу .env
+load_dotenv()
+
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
 
 bot = Bot(token=TELEGRAM_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
@@ -60,6 +66,28 @@ async def reply_to_user(message: types.Message):
         user_id = next((uid for uid, chat in support_requests.items() if chat == message.chat.id), None)
         if user_id:
             await bot.send_message(user_id, f"📩 Відповідь від підтримки: {message.text}")
+
+# Кнопка для адміністратора для відправки рекомендації всім
+@dp.message(Command("send_recommendation"))
+async def send_recommendation(message: types.Message):
+    if message.from_user.id == int(ADMIN_CHAT_ID):  # Перевірка, чи це адмін
+        keyboard = InlineKeyboardMarkup()
+        button = InlineKeyboardButton(text="Надіслати рекомендацію", callback_data="send_reminder_to_all")
+        keyboard.add(button)
+
+        await message.answer("Натисніть кнопку, щоб надіслати рекомендацію всім користувачам:", reply_markup=keyboard)
+
+@dp.callback_query(F.data == "send_reminder_to_all")
+async def send_recommendation_to_all(call: types.CallbackQuery):
+    if call.from_user.id == int(ADMIN_CHAT_ID):  # Перевірка, чи це адмін
+        for user_id in reminder_users:
+            try:
+                await bot.send_message(user_id, "🔔 Не забувайте про профілактику на СТО! Вчасне обслуговування — запорука довговічності вашого авто.")
+            except:
+                pass
+
+        await call.message.answer("✅ Рекомендацію надіслано всім підписникам.")
+        await call.answer()
 
 async def main():
     scheduler.add_job(send_reminders, "interval", weeks=4)
